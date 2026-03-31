@@ -89,7 +89,7 @@ export default function Tuner() {
             left: -8,
             right: -8,
             zIndex: 0,
-            background: "linear-gradient(175deg, #5eead4 0%, #34d399 45%, #2dd4a0 100%)",
+            background: "linear-gradient(175deg, #4aded0 0%, #22c993 45%, #1cb886 100%)",
             border: "1.5px solid rgba(255, 255, 255, 0.5)",
           }}
         />
