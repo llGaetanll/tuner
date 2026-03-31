@@ -24,11 +24,13 @@ export default function NoteScroller({
   onChange,
   isInTune,
   isFirst,
+  isLast,
 }: {
   note: string;
   onChange: (note: string) => void;
   isInTune: boolean;
   isFirst: boolean;
+  isLast: boolean;
 }) {
   const idx = ALL_NOTES.indexOf(note);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +69,7 @@ export default function NoteScroller({
       <div
         className={`
           w-14 h-10 flex items-center justify-center gap-0.5 transition-colors duration-150
+          ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""}
           ${isInTune ? "bg-emerald-50" : "bg-white"}
         `}
       >

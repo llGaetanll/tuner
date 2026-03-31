@@ -79,23 +79,16 @@ export default function Tuner() {
       <Meter cents={cents} />
 
       <div className="flex items-center">
-        <div className="flex rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+        <div className="flex rounded-xl border border-gray-200 shadow-sm">
           {tuning.map((note, i) => (
-            <div key={i} className="relative group/string">
+            <div key={i}>
               <NoteScroller
                 note={note}
                 onChange={(n) => handleNoteChange(i, n)}
                 isInTune={closestIdx === i && inTune}
                 isFirst={i === 0}
+                isLast={i === tuning.length - 1}
               />
-              {tuning.length > 1 && (
-                <button
-                  onClick={() => removeString(i)}
-                  className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-gray-200 text-gray-400 text-[10px] leading-none flex items-center justify-center opacity-0 group-hover/string:opacity-100 hover:bg-red-400 hover:text-white transition-all z-10"
-                >
-                  x
-                </button>
-              )}
             </div>
           ))}
         </div>
