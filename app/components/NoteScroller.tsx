@@ -93,9 +93,9 @@ export default function NoteScroller({
         </motion.div>
       </div>
 
-      {/* Highlight layer (white text, clipped to green bar region) */}
+      {/* Highlight layer (white text, clipped to green bar region, above green bar) */}
       <div
-        className="absolute left-0 right-0 overflow-hidden pointer-events-none"
+        className="absolute left-0 right-0 overflow-hidden pointer-events-none z-20"
         style={{ top: BAR_TOP, height: SELECTED_H }}
       >
         <motion.div
