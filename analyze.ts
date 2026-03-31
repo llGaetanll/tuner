@@ -56,21 +56,23 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   rms = Math.sqrt(rms / size);
   if (rms < 0.005) return -1;
 
-  // Autocorrelation
-  const c = new Float64Array(size);
-  for (let i = 0; i < size; i++) {
+  // Autocorrelation, only compute for plausible guitar lags
+  const minLag = Math.floor(sampleRate / 1400);
+  const maxLag = Math.min(Math.ceil(sampleRate / 50), Math.floor(size / 2));
+  const c = new Float64Array(maxLag + 1);
+  for (let i = minLag; i <= maxLag; i++) {
     for (let j = 0; j < size - i; j++) {
       c[i] += samples[j] * samples[j + i];
     }
   }
 
-  // Find first dip
-  let d1 = 0;
-  while (d1 < size - 1 && c[d1] > c[d1 + 1]) d1++;
+  // Find first dip after minLag
+  let d1 = minLag;
+  while (d1 < maxLag && c[d1] > c[d1 + 1]) d1++;
 
   // Find max after first dip
   let maxval = -1, maxpos = -1;
-  for (let i = d1; i < size; i++) {
+  for (let i = d1; i <= maxLag; i++) {
     if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
   }
 
@@ -85,7 +87,7 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
 }
 
 // Run analysis in sliding windows
-const WINDOW_MS = 200;
+const WINDOW_MS = 500;
 const HOP_MS = 50;
 
 console.log("Guitar Tuner Test Bench");
