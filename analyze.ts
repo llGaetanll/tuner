@@ -159,10 +159,9 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
     }
   }
 
-  // If NSDF peaks are very close (ambiguous), use FFT HPS as tiebreaker.
+  // Use FFT HPS to select among strong NSDF candidates.
   // HPS collapses harmonics onto the fundamental.
-  const sorted = [...peaks].sort((a, b) => b.val - a.val);
-  if (sorted.length >= 2 && sorted[1].val > sorted[0].val * 0.97) {
+  {
     const hps = new Float64Array(n / 2);
     for (let i = 0; i < n / 2; i++) hps[i] = mag[i];
     for (let h = 2; h <= 5; h++) {
@@ -170,15 +169,14 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
         hps[i] *= mag[i * h];
       }
     }
-    // Find HPS peak in guitar range
     let hpsPeakBin = minBin, hpsPeakVal = hps[minBin];
     for (let i = minBin + 1; i <= maxBin; i++) {
       if (hps[i] > hpsPeakVal) { hpsPeakVal = hps[i]; hpsPeakBin = i; }
     }
     const hpsFreq = hpsPeakBin * binWidth;
 
-    // Pick the NSDF peak whose frequency best matches HPS
-    const candidates = sorted.filter(p => p.val > sorted[0].val * 0.90);
+    // Among strong NSDF peaks, pick the one closest to HPS frequency
+    const candidates = peaks.filter(p => p.val >= globalMax * 0.80);
     let bestErr = Infinity;
     for (const p of candidates) {
       const freq = sampleRate / p.pos;
