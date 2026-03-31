@@ -54,10 +54,8 @@ function CylinderRow({
       onClick={() => onChange(n)}
       className={`flex items-center justify-center shrink-0 ${
         variant === "highlight"
-          ? "text-white font-bold"
-          : n === note
-            ? "text-gray-700 font-bold"
-            : "text-gray-400 hover:text-gray-600"
+          ? "text-white font-bold text-lg"
+          : "text-gray-400 hover:text-gray-600 text-sm"
       }`}
       style={{
         height: ROW_H,
@@ -68,7 +66,7 @@ function CylinderRow({
         transformOrigin: "center center",
       }}
     >
-      <span className={n === note ? "text-lg" : "text-sm"}>{name}</span>
+      {name}
     </motion.button>
   );
 }
@@ -84,16 +82,15 @@ export default function NoteScroller({
   const reversedIdx = REVERSED.indexOf(note);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const targetY = useMotionValue(
-    BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H,
-  );
+  const stripOffset = BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H;
+
+  const targetY = useMotionValue(stripOffset);
   const stripY = useSpring(targetY, { stiffness: 400, damping: 35 });
+  const highlightY = useTransform(stripY, (v) => v - BAR_TOP);
 
   useEffect(() => {
-    targetY.set(BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H);
-  }, [reversedIdx, targetY]);
-
-  const highlightY = useTransform(stripY, (v) => v - BAR_TOP);
+    targetY.set(stripOffset);
+  }, [stripOffset, targetY]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -128,11 +125,14 @@ export default function NoteScroller({
   return (
     <div
       ref={containerRef}
-      className="relative select-none cursor-ns-resize"
+      className="relative select-none cursor-default"
       style={{ height: CONTAINER_H, width: 56, perspective: 600 }}
     >
-      {/* Normal layer (gray text, behind green bar) */}
-      <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+      {/* Normal layer (gray text, clipped to exclude green bar region) */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{ zIndex: 0, clipPath: `polygon(0 0, 100% 0, 100% ${BAR_TOP}px, 0 ${BAR_TOP}px, 0 ${BAR_TOP + SELECTED_H}px, 100% ${BAR_TOP + SELECTED_H}px, 100% 100%, 0 100%)` }}
+      >
         <motion.div
           className="flex flex-col"
           style={{ y: stripY, transformStyle: "preserve-3d" }}

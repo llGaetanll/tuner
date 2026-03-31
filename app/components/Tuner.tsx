@@ -76,7 +76,7 @@ export default function Tuner() {
       <div className="relative mt-8">
         {/* Background for non-bar area */}
         <div
-          className="absolute inset-0 rounded-xl bg-gray-50 pointer-events-none"
+          className="absolute inset-0 rounded-xl bg-gray-50 border border-gray-200 pointer-events-none"
           style={{ zIndex: 0 }}
         />
 
