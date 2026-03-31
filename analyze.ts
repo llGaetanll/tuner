@@ -116,10 +116,25 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   const globalMax = Math.max(...peaks.map(p => p.val));
   if (globalMax < 0.5) return -1;
 
-  // MPM key-max: first peak (shortest lag) above 93% of the global max
+  // Find the strongest peak
+  const best = peaks.reduce((a, b) => a.val > b.val ? a : b);
+
+  // Check if a shorter-lag peak could be the true fundamental:
+  // It must be strong (>= 90% of best) AND the best peak's lag must be
+  // a near-integer multiple of it (harmonic relationship).
   peaks.sort((a, b) => a.pos - b.pos);
-  const chosen = peaks.find(p => p.val >= 0.90 * globalMax)
-    || peaks.reduce((a, b) => a.val > b.val ? a : b);
+  let chosen = best;
+  for (const p of peaks) {
+    if (p.pos >= best.pos) break;
+    if (p.val < best.val * 0.90) continue;
+    const ratio = best.pos / p.pos;
+    const nearestInt = Math.round(ratio);
+    if (nearestInt === 2 && Math.abs(ratio - 2) < 0.05) {
+      chosen = p;
+      break;
+    }
+  }
+
   let maxpos = chosen.pos;
 
   // Parabolic interpolation
