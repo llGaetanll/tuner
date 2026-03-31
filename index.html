@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head><title>Tuner - Record</title></head>
+<body style="margin:40px;font-family:monospace">
+<button id="btn" style="font-size:24px;padding:10px 30px">Record</button>
+<div id="status" style="font-size:18px;margin-top:20px"></div>
+<script>
+const btn = document.getElementById('btn');
+const status = document.getElementById('status');
+let recorder, chunks = [];
+
+btn.onclick = async () => {
+  if (recorder && recorder.state === 'recording') {
+    recorder.stop();
+    btn.textContent = 'Record';
+    status.textContent = 'Saving...';
+    return;
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'audio/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'guitar.webm';
+    a.click();
+    status.textContent = 'Saved guitar.webm';
+    stream.getTracks().forEach(t => t.stop());
+  };
+  recorder.start();
+  btn.textContent = 'Stop';
+  status.textContent = 'Recording... pluck each string with a pause between them';
+};
+</script>
+</body>
+</html>
