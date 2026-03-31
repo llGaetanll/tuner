@@ -28,7 +28,7 @@ function CylinderRow({
   note: string;
   rowIndex: number;
   stripY: MotionValue<number>;
-  variant: "normal" | "highlight";
+  variant: "normal" | "highlight" | "click";
   onChange: (note: string) => void;
 }) {
   const name = n.replace(/[0-9]/g, "");
@@ -53,9 +53,11 @@ function CylinderRow({
     <motion.button
       onClick={() => onChange(n)}
       className={`flex items-center justify-center shrink-0 ${
-        variant === "highlight"
-          ? "text-white font-bold text-lg"
-          : "text-gray-400 hover:text-gray-600 text-sm"
+        variant === "click"
+          ? "text-transparent"
+          : variant === "highlight"
+            ? "text-white font-bold text-lg"
+            : "text-gray-400 hover:text-gray-600 text-sm"
       }`}
       style={{
         height: ROW_H,
@@ -128,9 +130,19 @@ export default function NoteScroller({
       className="relative select-none cursor-default"
       style={{ height: CONTAINER_H, width: 56, perspective: 600 }}
     >
+      {/* Click layer (invisible, handles all clicks) */}
+      <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 3 }}>
+        <motion.div
+          className="flex flex-col"
+          style={{ y: stripY }}
+        >
+          {renderStrip("click")}
+        </motion.div>
+      </div>
+
       {/* Normal layer (gray text, clipped to exclude green bar region) */}
       <div
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ zIndex: 0, clipPath: `polygon(0 0, 100% 0, 100% ${BAR_TOP}px, 0 ${BAR_TOP}px, 0 ${BAR_TOP + SELECTED_H}px, 100% ${BAR_TOP + SELECTED_H}px, 100% 100%, 0 100%)` }}
       >
         <motion.div
