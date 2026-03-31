@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { detectPitch } from "../lib/pitch";
 import { noteToFreq, freqToCents } from "../lib/notes";
-import NoteScroller from "./NoteScroller";
+import NoteScroller, { BAR_TOP, SELECTED_H } from "./NoteScroller";
 import Meter from "./Meter";
 
 const DEFAULT_TUNING = ["D2", "A2", "D3", "F#3", "B3", "D4"];
@@ -51,16 +51,10 @@ export default function Tuner() {
     setTuning((prev) => { const next = [...prev]; next[idx] = note; return next; });
   }, []);
 
-  const addString = useCallback(() => setTuning((prev) => [...prev, "E4"]), []);
-
-  const removeString = useCallback((idx: number) => {
-    setTuning((prev) => prev.length <= 1 ? prev : prev.filter((_, i) => i !== idx));
-  }, []);
-
   const inTune = cents !== null && Math.abs(cents) < 5;
   const close = cents !== null && Math.abs(cents) < 15;
   const displayNote = closestIdx >= 0 ? tuning[closestIdx].replace(/[0-9]/g, "") : "--";
-  const noteColor = freq <= 0 ? "text-gray-200" : inTune ? "text-emerald-600" : close ? "text-gray-800" : "text-red-500";
+  const noteColor = freq <= 0 ? "text-gray-200" : inTune ? "text-emerald-500" : close ? "text-gray-800" : "text-red-500";
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 gap-10 px-4 py-12">
@@ -68,7 +62,7 @@ export default function Tuner() {
         <div className={`text-8xl font-bold tracking-tighter transition-colors duration-150 ${noteColor}`}>
           {displayNote}
         </div>
-        <div className={`text-2xl font-mono mt-1 transition-colors ${inTune ? "text-emerald-600" : "text-gray-400"}`}>
+        <div className={`text-2xl font-mono mt-1 transition-colors ${inTune ? "text-emerald-500" : "text-gray-400"}`}>
           {cents !== null ? (cents >= 0 ? `+${cents.toFixed(0)}c` : `${cents.toFixed(0)}c`) : "\u00a0"}
         </div>
         <div className="text-sm text-gray-400 font-mono mt-1">
@@ -78,18 +72,30 @@ export default function Tuner() {
 
       <Meter cents={cents} />
 
-      <div className="flex mt-8">
-        {tuning.map((note, i) => (
-          <div key={i}>
+      {/* Combo lock with green bar overlay */}
+      <div className="relative mt-8">
+        {/* The scrollers */}
+        <div className="flex relative z-0">
+          {tuning.map((note, i) => (
             <NoteScroller
+              key={i}
               note={note}
               onChange={(n) => handleNoteChange(i, n)}
-              isInTune={closestIdx === i && inTune}
               isFirst={i === 0}
-              isLast={i === tuning.length - 1}
             />
-          </div>
-        ))}
+          ))}
+        </div>
+
+        {/* Green bar overlay -- spans full width, pointer-events-none so clicks pass through */}
+        <div
+          className="absolute left-0 right-0 z-10 pointer-events-none rounded-xl bg-emerald-500"
+          style={{
+            top: BAR_TOP,
+            height: SELECTED_H,
+            marginLeft: -12,
+            marginRight: -12,
+          }}
+        />
       </div>
     </div>
   );
