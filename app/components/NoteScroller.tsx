@@ -68,7 +68,12 @@ function CylinderRow({
         transformOrigin: "center center",
       }}
     >
-      {name}
+      <span className="relative">
+        {name.replace("#", "")}
+        {name.includes("#") && (
+          <span className={`absolute top-0 left-full ${variant === "highlight" ? "text-[11px]" : "text-[8px]"}`}>#</span>
+        )}
+      </span>
     </motion.button>
   );
 }
