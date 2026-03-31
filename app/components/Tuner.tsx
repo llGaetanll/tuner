@@ -74,19 +74,27 @@ export default function Tuner() {
 
       {/* Combo lock with green bar overlay */}
       <div className="relative mt-8">
-        {/* Green bar -- behind everything */}
+        {/* Background for non-bar area */}
         <div
-          className="absolute pointer-events-none rounded-xl bg-emerald-500"
+          className="absolute inset-0 rounded-xl bg-gray-50 pointer-events-none"
+          style={{ zIndex: 0 }}
+        />
+
+        {/* Green bar */}
+        <div
+          className="absolute pointer-events-none rounded-xl"
           style={{
             top: BAR_TOP,
             height: SELECTED_H,
-            left: -12,
-            right: -12,
+            left: -8,
+            right: -8,
             zIndex: 0,
+            background: "linear-gradient(175deg, #5eead4 0%, #34d399 45%, #2dd4a0 100%)",
+            border: "1.5px solid rgba(255, 255, 255, 0.5)",
           }}
         />
 
-        {/* The scrollers -- above the green bar */}
+        {/* The scrollers */}
         <div className="flex relative" style={{ zIndex: 1 }}>
           {tuning.map((note, i) => (
             <NoteScroller
@@ -96,6 +104,16 @@ export default function Tuner() {
             />
           ))}
         </div>
+
+        {/* Fade edges */}
+        <div
+          className="absolute left-0 right-0 top-0 h-8 pointer-events-none rounded-t-xl"
+          style={{ background: "linear-gradient(to bottom, white, transparent)", zIndex: 2 }}
+        />
+        <div
+          className="absolute left-0 right-0 bottom-0 h-8 pointer-events-none rounded-b-xl"
+          style={{ background: "linear-gradient(to top, white, transparent)", zIndex: 2 }}
+        />
       </div>
     </div>
   );
