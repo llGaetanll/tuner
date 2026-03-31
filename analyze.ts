@@ -88,7 +88,7 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   let rms = 0;
   for (let i = 0; i < size; i++) rms += samples[i] * samples[i];
   rms = Math.sqrt(rms / size);
-  if (rms < 0.008) return -1;
+  if (rms < 0.010) return -1;
 
   // Step 1: FFT to get a rough frequency estimate
   let n = 1;
