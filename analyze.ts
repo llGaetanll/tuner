@@ -90,10 +90,32 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   rms = Math.sqrt(rms / size);
   if (rms < 0.008) return -1;
 
+  // Step 1: FFT to get a rough frequency estimate
+  let n = 1;
+  while (n < size) n <<= 1;
+  const re = new Float64Array(n);
+  const im = new Float64Array(n);
+  for (let i = 0; i < size; i++) {
+    re[i] = samples[i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (size - 1)));
+  }
+  fft(re, im);
+  const mag = new Float64Array(n / 2);
+  for (let i = 0; i < n / 2; i++) mag[i] = re[i] * re[i] + im[i] * im[i];
+
+  const binWidth = sampleRate / n;
+  const minBin = Math.floor(50 / binWidth);
+  const maxBin = Math.ceil(1400 / binWidth);
+  let fftPeakBin = minBin;
+  let fftPeakVal = mag[minBin];
+  for (let i = minBin + 1; i <= maxBin; i++) {
+    if (mag[i] > fftPeakVal) { fftPeakVal = mag[i]; fftPeakBin = i; }
+  }
+  const fftFreq = fftPeakBin * binWidth; // rough estimate from FFT
+
+  // Step 2: NSDF for precise pitch
   const minLag = Math.floor(sampleRate / 1400);
   const maxLag = Math.min(Math.ceil(sampleRate / 50), Math.floor(size / 2));
 
-  // NSDF for plausible lags
   const nsdf = new Float64Array(maxLag + 1);
   for (let tau = minLag; tau <= maxLag; tau++) {
     let acf = 0, m = 0;
@@ -104,7 +126,7 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
     nsdf[tau] = m > 0 ? 2 * acf / m : 0;
   }
 
-  // Find local maxima in positive regions
+  // Find local maxima
   const peaks: { pos: number; val: number }[] = [];
   for (let i = minLag + 1; i < maxLag; i++) {
     if (nsdf[i] > 0 && nsdf[i] >= nsdf[i - 1] && nsdf[i] >= nsdf[i + 1]) {
@@ -116,22 +138,52 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   const globalMax = Math.max(...peaks.map(p => p.val));
   if (globalMax < 0.5) return -1;
 
-  // Find the strongest peak
+  // Find strongest peak and check for octave correction
   const best = peaks.reduce((a, b) => a.val > b.val ? a : b);
 
-  // Check if a shorter-lag peak could be the true fundamental:
-  // It must be strong (>= 90% of best) AND the best peak's lag must be
-  // a near-integer multiple of it (harmonic relationship).
+  // Sort by lag (shortest first)
   peaks.sort((a, b) => a.pos - b.pos);
+
+  // Default: strongest peak
   let chosen = best;
+
+  // Octave-only correction: if a shorter-lag peak is >= 90% of best
+  // and best's lag is ~2x the shorter lag, prefer the shorter one.
   for (const p of peaks) {
     if (p.pos >= best.pos) break;
     if (p.val < best.val * 0.90) continue;
     const ratio = best.pos / p.pos;
-    const nearestInt = Math.round(ratio);
-    if (nearestInt === 2 && Math.abs(ratio - 2) < 0.05) {
+    if (Math.abs(ratio - 2) < 0.05) {
       chosen = p;
       break;
+    }
+  }
+
+  // If NSDF peaks are very close (ambiguous), use FFT HPS as tiebreaker.
+  // HPS collapses harmonics onto the fundamental.
+  const sorted = [...peaks].sort((a, b) => b.val - a.val);
+  if (sorted.length >= 2 && sorted[1].val > sorted[0].val * 0.97) {
+    const hps = new Float64Array(n / 2);
+    for (let i = 0; i < n / 2; i++) hps[i] = mag[i];
+    for (let h = 2; h <= 5; h++) {
+      for (let i = 0; i < Math.floor(n / 2 / h); i++) {
+        hps[i] *= mag[i * h];
+      }
+    }
+    // Find HPS peak in guitar range
+    let hpsPeakBin = minBin, hpsPeakVal = hps[minBin];
+    for (let i = minBin + 1; i <= maxBin; i++) {
+      if (hps[i] > hpsPeakVal) { hpsPeakVal = hps[i]; hpsPeakBin = i; }
+    }
+    const hpsFreq = hpsPeakBin * binWidth;
+
+    // Pick the NSDF peak whose frequency best matches HPS
+    const candidates = sorted.filter(p => p.val > sorted[0].val * 0.90);
+    let bestErr = Infinity;
+    for (const p of candidates) {
+      const freq = sampleRate / p.pos;
+      const err = Math.abs(freq - hpsFreq) / hpsFreq;
+      if (err < bestErr) { bestErr = err; chosen = p; }
     }
   }
 
