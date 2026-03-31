@@ -13,10 +13,8 @@ export default function Tuner() {
   const [freq, setFreq] = useState<number>(-1);
   const [closestIdx, setClosestIdx] = useState<number>(-1);
   const [cents, setCents] = useState<number | null>(null);
-  const [activeString, setActiveString] = useState<number>(-1);
   const audioRef = useRef<{ ctx: AudioContext; processor: ScriptProcessorNode } | null>(null);
 
-  // Start audio immediately
   useEffect(() => {
     let cancelled = false;
 
@@ -47,7 +45,6 @@ export default function Tuner() {
     };
   }, []);
 
-  // Compute closest string and cents
   useEffect(() => {
     if (freq <= 0) {
       setClosestIdx(-1);
@@ -59,19 +56,14 @@ export default function Tuner() {
     let bestIdx = 0;
     let bestDist = Infinity;
 
-    if (activeString >= 0 && activeString < tuning.length) {
-      bestIdx = activeString;
-      bestDist = Math.abs(freqToCents(freq, tuningFreqs[activeString]));
-    } else {
-      for (let i = 0; i < tuningFreqs.length; i++) {
-        const dist = Math.abs(freqToCents(freq, tuningFreqs[i]));
-        if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-      }
+    for (let i = 0; i < tuningFreqs.length; i++) {
+      const dist = Math.abs(freqToCents(freq, tuningFreqs[i]));
+      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
     }
 
     setClosestIdx(bestIdx);
     setCents(freqToCents(freq, tuningFreqs[bestIdx]));
-  }, [freq, tuning, activeString]);
+  }, [freq, tuning]);
 
   const handleNoteChange = useCallback((idx: number, note: string) => {
     setTuning((prev) => {
@@ -88,77 +80,79 @@ export default function Tuner() {
   const removeString = useCallback((idx: number) => {
     setTuning((prev) => {
       if (prev.length <= 1) return prev;
-      const next = prev.filter((_, i) => i !== idx);
-      if (activeString === idx) setActiveString(-1);
-      else if (activeString > idx) setActiveString((a) => a - 1);
-      return next;
+      return prev.filter((_, i) => i !== idx);
     });
-  }, [activeString]);
+  }, []);
 
   const inTune = cents !== null && Math.abs(cents) < 5;
   const close = cents !== null && Math.abs(cents) < 15;
 
   const displayNote = closestIdx >= 0 ? tuning[closestIdx].replace(/[0-9]/g, "") : "--";
   const noteColor = freq <= 0
-    ? "text-gray-600"
+    ? "text-gray-300"
     : inTune
-      ? "text-emerald-400"
+      ? "text-emerald-600"
       : close
-        ? "text-gray-200"
-        : "text-red-400";
+        ? "text-gray-800"
+        : "text-red-500";
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 gap-8 px-4">
+    <div className="flex flex-col items-center justify-center flex-1 gap-10 px-4 py-12">
       {/* Note display */}
       <div className="flex flex-col items-center">
-        <div className={`text-8xl font-bold tracking-tighter transition-colors ${noteColor}`}>
+        <div className={`text-8xl font-bold tracking-tighter transition-colors duration-150 ${noteColor}`}>
           {displayNote}
         </div>
-        <div className={`text-2xl font-mono mt-1 ${inTune ? "text-emerald-400" : "text-gray-500"}`}>
-          {cents !== null ? (cents >= 0 ? `+${cents.toFixed(0)}c` : `${cents.toFixed(0)}c`) : ""}
+        <div className={`text-2xl font-mono mt-1 transition-colors ${inTune ? "text-emerald-600" : "text-gray-400"}`}>
+          {cents !== null ? (cents >= 0 ? `+${cents.toFixed(0)}c` : `${cents.toFixed(0)}c`) : "\u00a0"}
         </div>
-        <div className="text-sm text-gray-500 font-mono mt-1">
-          {freq > 0 ? `${freq.toFixed(1)} Hz` : "-- Hz"}
+        <div className="text-sm text-gray-400 font-mono mt-1">
+          {freq > 0 ? `${freq.toFixed(1)} Hz` : "\u00a0"}
         </div>
       </div>
 
       {/* Meter */}
       <Meter cents={cents} />
 
-      {/* String buttons */}
-      <div className="flex items-end gap-3 flex-wrap justify-center">
-        {tuning.map((note, i) => (
-          <div key={i} className="flex flex-col items-center gap-1">
-            <NoteScroller
-              note={note}
-              onChange={(n) => handleNoteChange(i, n)}
-              isInTune={closestIdx === i && inTune}
-            />
-            <div className="flex gap-1 mt-1">
-              <button
-                onClick={() => setActiveString(activeString === i ? -1 : i)}
-                className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-                  activeString === i
-                    ? "bg-emerald-400/20 text-emerald-400 border border-emerald-400/50"
-                    : "text-gray-600 hover:text-gray-400"
-                }`}
-              >
-                {activeString === i ? "locked" : "lock"}
-              </button>
-              {tuning.length > 1 && (
-                <button
-                  onClick={() => removeString(i)}
-                  className="text-[10px] text-gray-600 hover:text-red-400 px-1 transition-colors"
-                >
-                  x
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+      {/* Combination lock string selector */}
+      <div className="flex items-center">
+        <div className="flex">
+          {tuning.map((note, i) => {
+            const position =
+              tuning.length === 1
+                ? "only" as const
+                : i === 0
+                  ? "first" as const
+                  : i === tuning.length - 1
+                    ? "last" as const
+                    : "middle" as const;
+
+            return (
+              <div key={i} className="relative group/string">
+                <NoteScroller
+                  note={note}
+                  onChange={(n) => handleNoteChange(i, n)}
+                  isInTune={closestIdx === i && inTune}
+                  position={position}
+                />
+                {/* Remove button */}
+                {tuning.length > 1 && (
+                  <button
+                    onClick={() => removeString(i)}
+                    className="absolute -top-2 -right-1 w-4 h-4 rounded-full bg-gray-300 text-gray-500 text-[10px] leading-none flex items-center justify-center opacity-0 group-hover/string:opacity-100 hover:bg-red-400 hover:text-white transition-all z-10"
+                  >
+                    x
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add button */}
         <button
           onClick={addString}
-          className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-700 text-gray-600 hover:border-gray-500 hover:text-gray-400 flex items-center justify-center text-2xl transition-colors"
+          className="w-10 h-14 ml-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 flex items-center justify-center text-xl transition-colors"
         >
           +
         </button>
