@@ -8,10 +8,9 @@ const ALL_NOTES = getAllNotes();
 const REVERSED = [...ALL_NOTES].reverse();
 
 export const ROW_H = 40;
-export const SELECTED_H = 52;
-export const VISIBLE_ROWS = 5;
-export const CONTAINER_H = ROW_H * (VISIBLE_ROWS - 1) + SELECTED_H;
-export const BAR_TOP = ROW_H * Math.floor(VISIBLE_ROWS / 2);
+export const SELECTED_H = 42;
+export const BAR_TOP = 60;
+export const CONTAINER_H = BAR_TOP + SELECTED_H + BAR_TOP;
 
 const CENTER_Y = BAR_TOP + SELECTED_H / 2;
 const MAX_ANGLE = 55;
@@ -50,6 +49,12 @@ function CylinderRow({
     return Math.max(0.7, 1 - dist * 0.06);
   });
 
+  // Pull rows toward center to simulate cylindrical foreshortening
+  const translateY = useTransform(stripY, (y) => {
+    const dist = (rowCenter + y - CENTER_Y) / ROW_H;
+    return -dist * Math.abs(dist) * 3;
+  });
+
   return (
     <motion.button
       onClick={() => onChange(n)}
@@ -66,6 +71,7 @@ function CylinderRow({
         rotateX,
         opacity,
         scale,
+        y: translateY,
         transformOrigin: "center center",
       }}
     >
