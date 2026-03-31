@@ -164,7 +164,7 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   {
     const hps = new Float64Array(n / 2);
     for (let i = 0; i < n / 2; i++) hps[i] = mag[i];
-    for (let h = 2; h <= 5; h++) {
+    for (let h = 2; h <= 6; h++) {
       for (let i = 0; i < Math.floor(n / 2 / h); i++) {
         hps[i] *= mag[i * h];
       }
@@ -176,7 +176,7 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
     const hpsFreq = hpsPeakBin * binWidth;
 
     // Among strong NSDF peaks, pick the one closest to HPS frequency
-    const candidates = peaks.filter(p => p.val >= globalMax * 0.80);
+    const candidates = peaks.filter(p => p.val >= globalMax * 0.70);
     let bestErr = Infinity;
     for (const p of candidates) {
       const freq = sampleRate / p.pos;
