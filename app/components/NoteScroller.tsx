@@ -5,16 +5,30 @@ import { noteToFreq, getAllNotes } from "../lib/notes";
 
 const ALL_NOTES = getAllNotes();
 
+function NoteLabel({ note, className, onClick }: { note: string; className?: string; onClick?: () => void }) {
+  const name = note.replace(/[0-9]/g, "");
+  const oct = note.match(/\d+/)?.[0] ?? "";
+  const freq = noteToFreq(note);
+  const Tag = onClick ? "button" : "div";
+  return (
+    <Tag onClick={onClick} className={`flex items-baseline gap-0.5 ${className ?? ""}`}>
+      <span className="font-semibold">{name}</span>
+      <span className="text-[9px] opacity-60">{oct}</span>
+      <span className="text-[9px] ml-1 opacity-40 font-mono">{freq.toFixed(0)}</span>
+    </Tag>
+  );
+}
+
 export default function NoteScroller({
   note,
   onChange,
   isInTune,
-  position,
+  isFirst,
 }: {
   note: string;
   onChange: (note: string) => void;
   isInTune: boolean;
-  position: "first" | "middle" | "last" | "only";
+  isFirst: boolean;
 }) {
   const idx = ALL_NOTES.indexOf(note);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,90 +50,64 @@ export default function NoteScroller({
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
-  const getNeighbor = (offset: number) => {
+  const get = (offset: number) => {
     const i = idx + offset;
-    if (i < 0 || i >= ALL_NOTES.length) return null;
-    return ALL_NOTES[i];
+    return i >= 0 && i < ALL_NOTES.length ? ALL_NOTES[i] : null;
   };
 
   const noteName = note.replace(/[0-9]/g, "");
   const octave = note.match(/\d+/)?.[0] ?? "";
 
-  const roundedClass =
-    position === "only"
-      ? "rounded-xl"
-      : position === "first"
-        ? "rounded-l-xl"
-        : position === "last"
-          ? "rounded-r-xl"
-          : "";
-
-  const borderClass =
-    position === "first" || position === "only"
-      ? "border-l-2"
-      : "";
-
   return (
-    <div ref={containerRef} className="relative group flex flex-col items-center select-none cursor-ns-resize">
-      {/* The drum/roller */}
-      <div className={`flex flex-col overflow-hidden border-y-2 border-r-2 ${borderClass} border-gray-300 bg-white ${roundedClass}`}>
-        {/* Above neighbor (faded) */}
-        <div className="h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-          {(() => {
-            const n = getNeighbor(1);
-            if (!n) return null;
-            const nm = n.replace(/[0-9]/g, "");
-            const oc = n.match(/\d+/)?.[0] ?? "";
-            return (
-              <button
-                onClick={() => onChange(n)}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-baseline gap-0.5"
-              >
-                <span className="font-semibold">{nm}</span>
-                <span className="text-[9px]">{oc}</span>
-              </button>
-            );
-          })()}
-        </div>
-
-        {/* Current note (center, prominent) */}
-        <div
-          className={`
-            w-16 h-14 flex flex-col items-center justify-center transition-colors duration-150
-            ${isInTune ? "bg-emerald-50" : "bg-white"}
-          `}
-        >
-          <span className={`text-xl font-bold leading-none ${isInTune ? "text-emerald-600" : "text-gray-900"}`}>
-            {noteName}
-          </span>
-          <span className={`text-[10px] leading-none mt-0.5 ${isInTune ? "text-emerald-500" : "text-gray-400"}`}>
-            {octave}
-          </span>
-        </div>
-
-        {/* Below neighbor (faded) */}
-        <div className="h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-          {(() => {
-            const n = getNeighbor(-1);
-            if (!n) return null;
-            const nm = n.replace(/[0-9]/g, "");
-            const oc = n.match(/\d+/)?.[0] ?? "";
-            return (
-              <button
-                onClick={() => onChange(n)}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-baseline gap-0.5"
-              >
-                <span className="font-semibold">{nm}</span>
-                <span className="text-[9px]">{oc}</span>
-              </button>
-            );
-          })()}
-        </div>
+    <div
+      ref={containerRef}
+      className={`relative group flex flex-col items-center select-none cursor-ns-resize ${isFirst ? "" : "border-l border-gray-200"}`}
+    >
+      {/* Hover expansion upward: +2, +1 */}
+      <div className="flex flex-col items-center overflow-hidden max-h-0 group-hover:max-h-24 transition-all duration-200 ease-out">
+        {[2, 1].map((offset) => {
+          const n = get(offset);
+          if (!n) return <div key={offset} className="h-6" />;
+          return (
+            <NoteLabel
+              key={offset}
+              note={n}
+              onClick={() => onChange(n)}
+              className={`h-6 px-3 text-sm hover:bg-gray-100 transition-colors w-full flex justify-center ${offset === 2 ? "text-gray-300" : "text-gray-400"}`}
+            />
+          );
+        })}
       </div>
 
-      {/* Frequency below */}
-      <div className="text-[10px] text-gray-400 font-mono mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {noteToFreq(note).toFixed(0)} Hz
+      {/* Current note */}
+      <div
+        className={`
+          w-14 h-10 flex items-center justify-center gap-0.5 transition-colors duration-150
+          ${isInTune ? "bg-emerald-50" : "bg-white"}
+        `}
+      >
+        <span className={`text-lg font-bold leading-none ${isInTune ? "text-emerald-600" : "text-gray-900"}`}>
+          {noteName}
+        </span>
+        <span className={`text-[10px] leading-none ${isInTune ? "text-emerald-400" : "text-gray-400"}`}>
+          {octave}
+        </span>
+      </div>
+
+      {/* Hover expansion downward: -1, -2 */}
+      <div className="flex flex-col items-center overflow-hidden max-h-0 group-hover:max-h-24 transition-all duration-200 ease-out">
+        {[-1, -2].map((offset) => {
+          const n = get(offset);
+          if (!n) return <div key={offset} className="h-6" />;
+          return (
+            <NoteLabel
+              key={offset}
+              note={n}
+              onClick={() => onChange(n)}
+              className={`h-6 px-3 text-sm hover:bg-gray-100 transition-colors w-full flex justify-center ${offset === -2 ? "text-gray-300" : "text-gray-400"}`}
+            />
+          );
+        })}
       </div>
     </div>
   );
