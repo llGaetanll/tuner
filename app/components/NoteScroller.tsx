@@ -93,10 +93,8 @@ export default function NoteScroller({
                 key={offset}
                 note={n}
                 onClick={() => onChange(n)}
-                className={`h-8 w-full text-sm transition-colors ${
-                  offset === 2
-                    ? "bg-gray-50 text-gray-400 hover:bg-gray-200"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                className={`h-8 w-14 text-sm bg-gray-100 hover:bg-gray-200 transition-colors ${
+                  offset === 2 ? "text-gray-400" : "text-gray-500"
                 }`}
               />
             );
@@ -118,10 +116,8 @@ export default function NoteScroller({
                 key={offset}
                 note={n}
                 onClick={() => onChange(n)}
-                className={`h-8 w-full text-sm transition-colors ${
-                  offset === -2
-                    ? "bg-gray-50 text-gray-400 hover:bg-gray-200"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                className={`h-8 w-14 text-sm bg-gray-100 hover:bg-gray-200 transition-colors ${
+                  offset === -2 ? "text-gray-400" : "text-gray-500"
                 }`}
               />
             );
