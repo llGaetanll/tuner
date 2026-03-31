@@ -97,11 +97,18 @@ export default function Tuner() {
         {/* The scrollers */}
         <div className="flex relative" style={{ zIndex: 1 }}>
           {tuning.map((note, i) => (
-            <NoteScroller
-              key={i}
-              note={note}
-              onChange={(n) => handleNoteChange(i, n)}
-            />
+            <div key={i} className="relative flex">
+              {i > 0 && (
+                <div
+                  className="absolute left-0 w-px bg-white/10"
+                  style={{ top: BAR_TOP + 10, height: SELECTED_H - 20 }}
+                />
+              )}
+              <NoteScroller
+                note={note}
+                onChange={(n) => handleNoteChange(i, n)}
+              />
+            </div>
           ))}
         </div>
 

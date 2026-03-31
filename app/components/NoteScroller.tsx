@@ -67,7 +67,7 @@ function CylinderRow({
       }`}
       style={{
         height: ROW_H,
-        width: 56,
+        width: 46,
         rotateX,
         opacity,
         scale,
@@ -141,7 +141,7 @@ export default function NoteScroller({
     <div
       ref={containerRef}
       className="relative select-none cursor-default"
-      style={{ height: CONTAINER_H, width: 56, perspective: 600 }}
+      style={{ height: CONTAINER_H, width: 46, perspective: 600 }}
     >
       {/* Click layer (invisible, handles all clicks) */}
       <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 3 }}>
