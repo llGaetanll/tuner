@@ -32,6 +32,7 @@ function CylinderRow({
   onChange: (note: string) => void;
 }) {
   const name = n.replace(/[0-9]/g, "");
+  const octave = n.replace(/[^0-9]/g, "");
   const rowCenter = rowIndex * ROW_H + ROW_H / 2;
 
   const rotateX = useTransform(stripY, (y) => {
@@ -70,9 +71,10 @@ function CylinderRow({
     >
       <span className="relative">
         {name.replace("#", "")}
-        {name.includes("#") && (
-          <span className={`absolute top-0 left-full ${variant === "highlight" ? "text-[11px]" : "text-[8px]"}`}>#</span>
-        )}
+        <span className="absolute left-full top-[2px] bottom-[2px] flex flex-col justify-between leading-none opacity-80">
+          <span className={variant === "highlight" ? "text-[11px]" : "text-[8px]"}>{name.includes("#") ? "#" : "\u00a0"}</span>
+          <span className={variant === "highlight" ? "text-[10px]" : "text-[8px]"}>{octave}</span>
+        </span>
       </span>
     </motion.button>
   );
