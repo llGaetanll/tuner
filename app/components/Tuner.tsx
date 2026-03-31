@@ -5,6 +5,7 @@ import { detectPitch } from "../lib/pitch";
 import { noteToFreq, freqToCents } from "../lib/notes";
 import NoteScroller, { BAR_TOP, SELECTED_H } from "./NoteScroller";
 import Meter from "./Meter";
+import TuningPresets from "./TuningPresets";
 
 const DEFAULT_TUNING = ["D2", "A2", "D3", "F#3", "B3", "D4"];
 
@@ -122,6 +123,11 @@ export default function Tuner() {
           style={{ background: "linear-gradient(to top, white, transparent)", zIndex: 2 }}
         />
       </div>
+
+      <TuningPresets
+        currentTuning={tuning}
+        onSelect={setTuning}
+      />
     </div>
   );
 }
