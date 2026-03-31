@@ -11,7 +11,7 @@ function NoteLabel({ note, className, onClick }: { note: string; className?: str
   const freq = noteToFreq(note);
   const Tag = onClick ? "button" : "div";
   return (
-    <Tag onClick={onClick} className={`flex items-baseline gap-0.5 ${className ?? ""}`}>
+    <Tag onClick={onClick} className={`flex items-baseline justify-center gap-0.5 ${className ?? ""}`}>
       <span className="font-semibold">{name}</span>
       <span className="text-[9px] opacity-60">{oct}</span>
       <span className="text-[9px] ml-1 opacity-40 font-mono">{freq.toFixed(0)}</span>
@@ -61,25 +61,9 @@ export default function NoteScroller({
   return (
     <div
       ref={containerRef}
-      className={`relative group flex flex-col items-center select-none cursor-ns-resize ${isFirst ? "" : "border-l border-gray-200"}`}
+      className={`relative group select-none cursor-ns-resize ${isFirst ? "" : "border-l border-gray-200"}`}
     >
-      {/* Hover expansion upward: +2, +1 */}
-      <div className="flex flex-col items-center overflow-hidden max-h-0 group-hover:max-h-24 transition-all duration-200 ease-out">
-        {[2, 1].map((offset) => {
-          const n = get(offset);
-          if (!n) return <div key={offset} className="h-6" />;
-          return (
-            <NoteLabel
-              key={offset}
-              note={n}
-              onClick={() => onChange(n)}
-              className={`h-6 px-3 text-sm hover:bg-gray-100 transition-colors w-full flex justify-center ${offset === 2 ? "text-gray-300" : "text-gray-400"}`}
-            />
-          );
-        })}
-      </div>
-
-      {/* Current note */}
+      {/* Current note -- this is the only thing in flow */}
       <div
         className={`
           w-14 h-10 flex items-center justify-center gap-0.5 transition-colors duration-150
@@ -94,8 +78,24 @@ export default function NoteScroller({
         </span>
       </div>
 
-      {/* Hover expansion downward: -1, -2 */}
-      <div className="flex flex-col items-center overflow-hidden max-h-0 group-hover:max-h-24 transition-all duration-200 ease-out">
+      {/* Neighbors above -- absolutely positioned */}
+      <div className="absolute bottom-full left-0 w-full flex flex-col items-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150">
+        {[2, 1].map((offset) => {
+          const n = get(offset);
+          if (!n) return <div key={offset} className="h-6" />;
+          return (
+            <NoteLabel
+              key={offset}
+              note={n}
+              onClick={() => onChange(n)}
+              className={`h-6 w-full text-sm hover:bg-gray-100 transition-colors ${offset === 2 ? "text-gray-300" : "text-gray-400"}`}
+            />
+          );
+        })}
+      </div>
+
+      {/* Neighbors below -- absolutely positioned */}
+      <div className="absolute top-full left-0 w-full flex flex-col items-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150">
         {[-1, -2].map((offset) => {
           const n = get(offset);
           if (!n) return <div key={offset} className="h-6" />;
@@ -104,7 +104,7 @@ export default function NoteScroller({
               key={offset}
               note={n}
               onClick={() => onChange(n)}
-              className={`h-6 px-3 text-sm hover:bg-gray-100 transition-colors w-full flex justify-center ${offset === -2 ? "text-gray-300" : "text-gray-400"}`}
+              className={`h-6 w-full text-sm hover:bg-gray-100 transition-colors ${offset === -2 ? "text-gray-300" : "text-gray-400"}`}
             />
           );
         })}
