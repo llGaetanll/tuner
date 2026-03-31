@@ -1,11 +1,15 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { noteToFreq, getAllNotes } from "../lib/notes";
 
 const ALL_NOTES = getAllNotes();
-const VISIBLE = 5; // total visible: 2 above, selected, 2 below
+
+const ROW_H = 28;
+const SELECTED_H = 40;
+// Total height: 2 rows above + selected + 2 rows below
+const CONTAINER_H = ROW_H * 4 + SELECTED_H;
 
 export default function NoteScroller({
   note,
@@ -39,45 +43,57 @@ export default function NoteScroller({
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
-  // Build the 5 visible slots: offsets +2, +1, 0, -1, -2
-  const slots = [2, 1, 0, -1, -2].map((offset) => {
+  // Render enough items to fill the view + overflow for animation.
+  // We render 7 items (3 above, selected, 3 below) and clip to 5.
+  const range = 3;
+  const items: { note: string; globalIdx: number }[] = [];
+  for (let offset = range; offset >= -range; offset--) {
     const i = idx + offset;
-    if (i < 0 || i >= ALL_NOTES.length) return null;
-    return { note: ALL_NOTES[i], offset };
-  });
+    if (i >= 0 && i < ALL_NOTES.length) {
+      items.push({ note: ALL_NOTES[i], globalIdx: i });
+    }
+  }
+
+  // The strip y offset: the selected note (idx) should be centered.
+  // Each item above selected is ROW_H, selected itself is SELECTED_H.
+  // We position so that the strip scrolls within the clipped container.
+  // Top of container = 2 * ROW_H above center of selected.
+  // Strip top starts at the highest item we render (idx + range).
+  // Distance from top of strip to top of selected = (items above selected) * ROW_H
+  // We want top of selected to be at y = 2 * ROW_H in the container.
+  const itemsAboveSelected = items.filter((it) => it.globalIdx > idx).length;
+  const stripOffset = ROW_H * 2 - itemsAboveSelected * ROW_H;
 
   return (
     <div
       ref={containerRef}
-      className={`relative select-none cursor-ns-resize flex flex-col overflow-hidden ${isFirst ? "" : "border-l border-gray-200"}`}
-      style={{ height: VISIBLE * 32 }}
+      className={`relative select-none cursor-ns-resize overflow-hidden ${isFirst ? "" : "border-l border-gray-200"}`}
+      style={{ height: CONTAINER_H }}
     >
-      <AnimatePresence initial={false} mode="popLayout">
-        {slots.map((slot) => {
-          if (!slot) return null;
-          const n = slot.note;
+      <motion.div
+        className="flex flex-col w-14"
+        animate={{ y: stripOffset }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+      >
+        {items.map((item) => {
+          const n = item.note;
           const name = n.replace(/[0-9]/g, "");
           const oct = n.match(/\d+/)?.[0] ?? "";
           const freq = noteToFreq(n);
-          const isSelected = slot.offset === 0;
+          const isSelected = item.globalIdx === idx;
 
           return (
-            <motion.button
+            <button
               key={n}
-              layout
-              initial={{ opacity: 0, y: slot.offset > 0 ? -32 : 32 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: slot.offset > 0 ? 32 : -32 }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
               onClick={() => onChange(n)}
               className={`w-14 flex items-center justify-center gap-0.5 shrink-0 transition-colors ${
                 isSelected
                   ? isInTune
-                    ? "bg-emerald-500 text-white"
+                    ? "bg-emerald-400 text-white"
                     : "bg-emerald-100 text-emerald-900"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200"
               }`}
-              style={{ height: 32 }}
+              style={{ height: isSelected ? SELECTED_H : ROW_H }}
             >
               <span className={`font-semibold leading-none ${isSelected ? "text-base" : "text-sm"}`}>
                 {name}
@@ -88,10 +104,10 @@ export default function NoteScroller({
               {!isSelected && (
                 <span className="text-[9px] ml-0.5 opacity-30 font-mono">{freq.toFixed(0)}</span>
               )}
-            </motion.button>
+            </button>
           );
         })}
-      </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
