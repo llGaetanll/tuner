@@ -65,15 +65,18 @@ function CylinderRow({
             ? "text-white font-bold text-lg"
             : "text-gray-400 hover:text-gray-600 text-sm"
       }`}
-      style={{
-        height: ROW_H,
-        width: 46,
-        rotateX,
-        opacity,
-        scale,
-        y: translateY,
-        transformOrigin: "center center",
-      }}
+      style={variant === "click"
+        ? { height: ROW_H, width: 46 }
+        : {
+            height: ROW_H,
+            width: 46,
+            rotateX,
+            opacity,
+            scale,
+            y: translateY,
+            transformOrigin: "center center",
+          }
+      }
     >
       <span className="relative">
         {name.replace("#", "")}
@@ -124,18 +127,26 @@ export default function NoteScroller({
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
-  const renderStrip = (variant: "normal" | "highlight") =>
-    REVERSED.map((n, i) => (
-      <CylinderRow
-        key={n}
-        n={n}
-        note={note}
-        rowIndex={i}
-        stripY={stripY}
-        variant={variant}
-        onChange={onChange}
-      />
-    ));
+  const BUFFER = 6;
+  const sliceStart = Math.max(0, reversedIdx - BUFFER);
+  const sliceEnd = Math.min(REVERSED.length, reversedIdx + BUFFER + 1);
+
+  const renderStrip = (variant: "normal" | "highlight" | "click") => (
+    <>
+      <div style={{ height: sliceStart * ROW_H, flexShrink: 0 }} />
+      {REVERSED.slice(sliceStart, sliceEnd).map((n, i) => (
+        <CylinderRow
+          key={n}
+          n={n}
+          note={note}
+          rowIndex={sliceStart + i}
+          stripY={stripY}
+          variant={variant}
+          onChange={onChange}
+        />
+      ))}
+    </>
+  );
 
   return (
     <div
