@@ -93,33 +93,37 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   const minLag = Math.floor(sampleRate / 1400);
   const maxLag = Math.min(Math.ceil(sampleRate / 50), Math.floor(size / 2));
 
-  // Autocorrelation for plausible guitar lags only
-  const c = new Float64Array(maxLag + 1);
-  for (let i = minLag; i <= maxLag; i++) {
-    for (let j = 0; j < size - i; j++) {
-      c[i] += samples[j] * samples[j + i];
+  // NSDF for plausible lags
+  const nsdf = new Float64Array(maxLag + 1);
+  for (let tau = minLag; tau <= maxLag; tau++) {
+    let acf = 0, m = 0;
+    for (let j = 0; j < size - tau; j++) {
+      acf += samples[j] * samples[j + tau];
+      m += samples[j] * samples[j] + samples[j + tau] * samples[j + tau];
+    }
+    nsdf[tau] = m > 0 ? 2 * acf / m : 0;
+  }
+
+  // Find local maxima in positive regions
+  const peaks: { pos: number; val: number }[] = [];
+  for (let i = minLag + 1; i < maxLag; i++) {
+    if (nsdf[i] > 0 && nsdf[i] >= nsdf[i - 1] && nsdf[i] >= nsdf[i + 1]) {
+      peaks.push({ pos: i, val: nsdf[i] });
     }
   }
+  if (peaks.length === 0) return -1;
 
-  // Find first dip
-  let d1 = minLag;
-  while (d1 < maxLag && c[d1] > c[d1 + 1]) d1++;
+  const globalMax = Math.max(...peaks.map(p => p.val));
+  if (globalMax < 0.5) return -1;
 
-  // Find the strongest peak after first dip
-  let maxval = -Infinity, maxpos = -1;
-  for (let i = d1; i <= maxLag; i++) {
-    if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
-  }
-
-  if (maxpos < 1 || maxpos >= maxLag) return -1;
-
-  // Quality check: correlation at peak vs at lag 0
-  let c0 = 0;
-  for (let j = 0; j < size; j++) c0 += samples[j] * samples[j];
-  if (c0 === 0 || maxval / c0 < 0.2) return -1;
+  // MPM key-max: first peak (shortest lag) above 93% of the global max
+  peaks.sort((a, b) => a.pos - b.pos);
+  const chosen = peaks.find(p => p.val >= 0.90 * globalMax)
+    || peaks.reduce((a, b) => a.val > b.val ? a : b);
+  let maxpos = chosen.pos;
 
   // Parabolic interpolation
-  const a = c[maxpos - 1], b = c[maxpos], cc = c[maxpos + 1];
+  const a = nsdf[maxpos - 1], b = nsdf[maxpos], cc = nsdf[maxpos + 1];
   const denom = a - 2 * b + cc;
   if (denom === 0) return sampleRate / maxpos;
   const shift = (a - cc) / (2 * denom);
