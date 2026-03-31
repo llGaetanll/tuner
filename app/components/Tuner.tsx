@@ -74,28 +74,28 @@ export default function Tuner() {
 
       {/* Combo lock with green bar overlay */}
       <div className="relative mt-8">
-        {/* The scrollers */}
-        <div className="flex relative z-0">
+        {/* Green bar -- behind everything */}
+        <div
+          className="absolute pointer-events-none rounded-xl bg-emerald-500"
+          style={{
+            top: BAR_TOP,
+            height: SELECTED_H,
+            left: -12,
+            right: -12,
+            zIndex: 0,
+          }}
+        />
+
+        {/* The scrollers -- above the green bar */}
+        <div className="flex relative" style={{ zIndex: 1 }}>
           {tuning.map((note, i) => (
             <NoteScroller
               key={i}
               note={note}
               onChange={(n) => handleNoteChange(i, n)}
-              isFirst={i === 0}
             />
           ))}
         </div>
-
-        {/* Green bar overlay -- spans full width, pointer-events-none so clicks pass through */}
-        <div
-          className="absolute left-0 right-0 z-10 pointer-events-none rounded-xl bg-emerald-500"
-          style={{
-            top: BAR_TOP,
-            height: SELECTED_H,
-            marginLeft: -12,
-            marginRight: -12,
-          }}
-        />
       </div>
     </div>
   );
