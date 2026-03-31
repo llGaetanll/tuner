@@ -93,6 +93,7 @@ console.log("=".repeat(70));
 
 let totalFrames = 0;
 let totalCorrect = 0;
+const stringAccuracies: number[] = [];
 
 for (const [file, expected] of Object.entries(STRINGS)) {
   const { samples, sampleRate } = readWav(file);
@@ -115,17 +116,21 @@ for (const [file, expected] of Object.entries(STRINGS)) {
     }
   }
 
-  const pct = ((correct / frames) * 100).toFixed(1);
+  const pct = (correct / frames) * 100;
   const median = detections.length > 0
     ? detections.sort((a, b) => a - b)[Math.floor(detections.length / 2)].toFixed(1)
     : "N/A";
 
   totalFrames += frames;
   totalCorrect += correct;
+  stringAccuracies.push(pct);
 
-  console.log(`\n${file} (expected: ${expected} Hz)`);
-  console.log(`  Frames: ${frames} | Correct: ${correct} (${pct}%) | Median detection: ${median} Hz`);
+  console.log(`  ${file.padEnd(28)} expected: ${String(expected).padEnd(6)} | ${String(pct.toFixed(1) + "%").padStart(6)} correct | median: ${median} Hz`);
 }
 
+const frameScore = (totalCorrect / totalFrames) * 100;
+const stringScore = stringAccuracies.reduce((a, b) => a + b, 0) / stringAccuracies.length;
+
 console.log("\n" + "=".repeat(70));
-console.log(`TOTAL: ${totalCorrect}/${totalFrames} frames correct (${((totalCorrect / totalFrames) * 100).toFixed(1)}%)`);
+console.log(`  Frame accuracy:  ${frameScore.toFixed(1)}%  (${totalCorrect}/${totalFrames} frames within ${TOLERANCE * 100}%)`);
+console.log(`  String accuracy: ${stringScore.toFixed(1)}%  (average of per-string scores)`);
