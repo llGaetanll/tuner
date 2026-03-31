@@ -47,6 +47,40 @@ function readWav(path: string): { samples: Float64Array; sampleRate: number } {
   throw new Error("No data chunk found");
 }
 
+// FFT via Cooley-Tukey radix-2
+function fft(re: Float64Array, im: Float64Array) {
+  const n = re.length;
+  // Bit-reversal permutation
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      [re[i], re[j]] = [re[j], re[i]];
+      [im[i], im[j]] = [im[j], im[i]];
+    }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const half = len >> 1;
+    const angle = -2 * Math.PI / len;
+    const wRe = Math.cos(angle), wIm = Math.sin(angle);
+    for (let i = 0; i < n; i += len) {
+      let curRe = 1, curIm = 0;
+      for (let j = 0; j < half; j++) {
+        const tRe = curRe * re[i + j + half] - curIm * im[i + j + half];
+        const tIm = curRe * im[i + j + half] + curIm * re[i + j + half];
+        re[i + j + half] = re[i + j] - tRe;
+        im[i + j + half] = im[i + j] - tIm;
+        re[i + j] += tRe;
+        im[i + j] += tIm;
+        const newCurRe = curRe * wRe - curIm * wIm;
+        curIm = curRe * wIm + curIm * wRe;
+        curRe = newCurRe;
+      }
+    }
+  }
+}
+
 function detectPitch(samples: Float64Array, sampleRate: number): number {
   const size = samples.length;
 
@@ -54,11 +88,12 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
   let rms = 0;
   for (let i = 0; i < size; i++) rms += samples[i] * samples[i];
   rms = Math.sqrt(rms / size);
-  if (rms < 0.005) return -1;
+  if (rms < 0.008) return -1;
 
-  // Autocorrelation, only compute for plausible guitar lags
   const minLag = Math.floor(sampleRate / 1400);
   const maxLag = Math.min(Math.ceil(sampleRate / 50), Math.floor(size / 2));
+
+  // Autocorrelation for plausible guitar lags only
   const c = new Float64Array(maxLag + 1);
   for (let i = minLag; i <= maxLag; i++) {
     for (let j = 0; j < size - i; j++) {
@@ -66,17 +101,22 @@ function detectPitch(samples: Float64Array, sampleRate: number): number {
     }
   }
 
-  // Find first dip after minLag
+  // Find first dip
   let d1 = minLag;
   while (d1 < maxLag && c[d1] > c[d1 + 1]) d1++;
 
-  // Find max after first dip
-  let maxval = -1, maxpos = -1;
+  // Find the strongest peak after first dip
+  let maxval = -Infinity, maxpos = -1;
   for (let i = d1; i <= maxLag; i++) {
     if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
   }
 
-  if (maxpos < 1 || maxpos >= size - 1) return -1;
+  if (maxpos < 1 || maxpos >= maxLag) return -1;
+
+  // Quality check: correlation at peak vs at lag 0
+  let c0 = 0;
+  for (let j = 0; j < size; j++) c0 += samples[j] * samples[j];
+  if (c0 === 0 || maxval / c0 < 0.2) return -1;
 
   // Parabolic interpolation
   const a = c[maxpos - 1], b = c[maxpos], cc = c[maxpos + 1];
@@ -95,7 +135,10 @@ console.log("=".repeat(70));
 
 let totalFrames = 0;
 let totalCorrect = 0;
-const stringAccuracies: number[] = [];
+let totalDetected = 0;
+let totalWrong = 0;
+const stringPrecisions: number[] = [];
+const stringRecalls: number[] = [];
 
 for (const [file, expected] of Object.entries(STRINGS)) {
   const { samples, sampleRate } = readWav(file);
@@ -103,7 +146,9 @@ for (const [file, expected] of Object.entries(STRINGS)) {
   const hopSize = Math.floor((HOP_MS / 1000) * sampleRate);
 
   let frames = 0;
+  let detected = 0;
   let correct = 0;
+  let wrong = 0;
   const detections: number[] = [];
 
   for (let start = 0; start + windowSize <= samples.length; start += hopSize) {
@@ -112,27 +157,37 @@ for (const [file, expected] of Object.entries(STRINGS)) {
     frames++;
 
     if (freq > 0) {
+      detected++;
       detections.push(freq);
       const error = Math.abs(freq - expected) / expected;
       if (error < TOLERANCE) correct++;
+      else wrong++;
     }
   }
 
-  const pct = (correct / frames) * 100;
+  const precision = detected > 0 ? (correct / detected) * 100 : 0;
+  const recall = (correct / frames) * 100;
   const median = detections.length > 0
     ? detections.sort((a, b) => a - b)[Math.floor(detections.length / 2)].toFixed(1)
     : "N/A";
 
   totalFrames += frames;
   totalCorrect += correct;
-  stringAccuracies.push(pct);
+  totalDetected += detected;
+  totalWrong += wrong;
+  stringPrecisions.push(precision);
+  stringRecalls.push(recall);
 
-  console.log(`  ${file.padEnd(28)} expected: ${String(expected).padEnd(6)} | ${String(pct.toFixed(1) + "%").padStart(6)} correct | median: ${median} Hz`);
+  console.log(`  ${file.padEnd(28)} expected: ${String(expected).padEnd(6)} | prec: ${String(precision.toFixed(0) + "%").padStart(4)} | recall: ${String(recall.toFixed(0) + "%").padStart(4)} | ${correct}/${detected}/${frames} (ok/det/total) | median: ${median} Hz`);
 }
 
-const frameScore = (totalCorrect / totalFrames) * 100;
-const stringScore = stringAccuracies.reduce((a, b) => a + b, 0) / stringAccuracies.length;
+const precision = totalDetected > 0 ? (totalCorrect / totalDetected) * 100 : 0;
+const recall = (totalCorrect / totalFrames) * 100;
+const avgPrecision = stringPrecisions.reduce((a, b) => a + b, 0) / stringPrecisions.length;
+const avgRecall = stringRecalls.reduce((a, b) => a + b, 0) / stringRecalls.length;
 
 console.log("\n" + "=".repeat(70));
-console.log(`  Frame accuracy:  ${frameScore.toFixed(1)}%  (${totalCorrect}/${totalFrames} frames within ${TOLERANCE * 100}%)`);
-console.log(`  String accuracy: ${stringScore.toFixed(1)}%  (average of per-string scores)`);
+console.log(`  Precision: ${precision.toFixed(1)}%  (${totalCorrect}/${totalDetected} detections correct)`);
+console.log(`  Recall:    ${recall.toFixed(1)}%  (${totalCorrect}/${totalFrames} total frames correct)`);
+console.log(`  Wrong:     ${totalWrong} frames detected but incorrect`);
+console.log(`  Avg string precision: ${avgPrecision.toFixed(1)}%  |  Avg string recall: ${avgRecall.toFixed(1)}%`);
