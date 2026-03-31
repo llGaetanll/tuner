@@ -78,27 +78,18 @@ export default function Tuner() {
 
       <Meter cents={cents} />
 
-      <div className="flex items-center">
-        <div className="flex rounded-xl border border-gray-200 shadow-sm">
-          {tuning.map((note, i) => (
-            <div key={i}>
-              <NoteScroller
-                note={note}
-                onChange={(n) => handleNoteChange(i, n)}
-                isInTune={closestIdx === i && inTune}
-                isFirst={i === 0}
-                isLast={i === tuning.length - 1}
-              />
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={addString}
-          className="w-8 h-10 ml-3 rounded-lg border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 flex items-center justify-center text-lg transition-colors"
-        >
-          +
-        </button>
+      <div className="flex mt-8">
+        {tuning.map((note, i) => (
+          <div key={i}>
+            <NoteScroller
+              note={note}
+              onChange={(n) => handleNoteChange(i, n)}
+              isInTune={closestIdx === i && inTune}
+              isFirst={i === 0}
+              isLast={i === tuning.length - 1}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

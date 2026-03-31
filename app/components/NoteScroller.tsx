@@ -69,8 +69,7 @@ export default function NoteScroller({
       <div
         className={`
           w-14 h-10 flex items-center justify-center gap-0.5 transition-colors duration-150
-          ${isFirst ? "rounded-l-xl" : ""} ${isLast ? "rounded-r-xl" : ""}
-          ${isInTune ? "bg-emerald-50" : "bg-white"}
+          ${isInTune ? "bg-emerald-50" : "bg-gray-100"}
         `}
       >
         <span className={`text-lg font-bold leading-none ${isInTune ? "text-emerald-600" : "text-gray-900"}`}>
