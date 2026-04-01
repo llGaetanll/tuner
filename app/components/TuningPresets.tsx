@@ -47,33 +47,41 @@ export default function TuningPresets({
   onSelect: (notes: string[]) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1" style={{ width: NOTES_W }}>
+    <div className="flex flex-col gap-3" style={{ width: NOTES_W }}>
       {PRESETS.map((preset) => {
         const isActive =
           preset.notes.length === currentTuning.length &&
           preset.notes.every((n, i) => n === currentTuning[i]);
 
         return (
-          <button
-            key={preset.name}
-            onClick={() => onSelect(preset.notes)}
-            className={`relative flex items-center h-9 rounded-lg transition-colors ${
-              isActive ? "bg-gray-100" : "hover:bg-gray-50"
-            }`}
-          >
+          <div key={preset.name} className="flex flex-col">
             <span
-              className={`absolute right-full pr-2 text-[11px] whitespace-nowrap ${
+              className={`md:hidden text-[11px] whitespace-nowrap pl-1 ${
                 isActive ? "text-gray-600 font-semibold" : "text-gray-400"
               }`}
             >
               {preset.name}
             </span>
-            <span className={`flex w-full ${isActive ? "text-gray-700 font-semibold" : "text-gray-400"}`}>
-              {preset.notes.map((n, i) => (
-                <NoteCell key={i} n={n} />
-              ))}
-            </span>
-          </button>
+            <button
+              onClick={() => onSelect(preset.notes)}
+              className={`relative flex items-center h-9 rounded-lg transition-colors ${
+                isActive ? "bg-gray-100" : "hover:bg-gray-50"
+              }`}
+            >
+              <span
+                className={`hidden md:block absolute right-full pr-2 text-[11px] whitespace-nowrap ${
+                  isActive ? "text-gray-600 font-semibold" : "text-gray-400"
+                }`}
+              >
+                {preset.name}
+              </span>
+              <span className={`flex w-full ${isActive ? "text-gray-700 font-semibold" : "text-gray-400"}`}>
+                {preset.notes.map((n, i) => (
+                  <NoteCell key={i} n={n} />
+                ))}
+              </span>
+            </button>
+          </div>
         );
       })}
     </div>

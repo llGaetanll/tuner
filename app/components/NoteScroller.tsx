@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { motion, useSpring, useMotionValue, useTransform, MotionValue } from "framer-motion";
 import { getAllNotes } from "../lib/notes";
 
@@ -112,12 +112,49 @@ export default function NoteScroller({
     [idx, onChange],
   );
 
+  // Track touch dragging
+  const touchStartY = useRef<number>(0);
+  const touchAccum = useRef<number>(0);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchAccum.current = 0;
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      e.preventDefault();
+      const dy = touchStartY.current - e.touches[0].clientY;
+      touchStartY.current = e.touches[0].clientY;
+      touchAccum.current += dy;
+
+      const threshold = ROW_H * 0.6;
+      while (touchAccum.current > threshold) {
+        touchAccum.current -= threshold;
+        const newIdx = Math.min(ALL_NOTES.length - 1, idx + 1);
+        if (newIdx !== idx) onChange(ALL_NOTES[newIdx]);
+      }
+      while (touchAccum.current < -threshold) {
+        touchAccum.current += threshold;
+        const newIdx = Math.max(0, idx - 1);
+        if (newIdx !== idx) onChange(ALL_NOTES[newIdx]);
+      }
+    },
+    [idx, onChange],
+  );
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [handleWheel, handleTouchStart, handleTouchMove]);
 
   const stripOffset = BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H;
 
