@@ -15,6 +15,7 @@ export default function Tuner() {
   const [closestIdx, setClosestIdx] = useState<number>(-1);
   const [cents, setCents] = useState<number | null>(null);
   const [selectedString, setSelectedString] = useState<number>(0);
+  const [autoDetect, setAutoDetect] = useState<boolean>(false);
   const audioRef = useRef<{ ctx: AudioContext; processor: ScriptProcessorNode } | null>(null);
 
   useEffect(() => {
@@ -39,10 +40,22 @@ export default function Tuner() {
 
   useEffect(() => {
     if (freq <= 0) { setClosestIdx(-1); setCents(null); return; }
-    const targetFreq = noteToFreq(tuning[selectedString]);
-    setClosestIdx(selectedString);
-    setCents(freqToCents(freq, targetFreq));
-  }, [freq, tuning, selectedString]);
+    if (autoDetect) {
+      const tuningFreqs = tuning.map(noteToFreq);
+      let bestIdx = 0, bestDist = Infinity;
+      for (let i = 0; i < tuningFreqs.length; i++) {
+        const dist = Math.abs(freqToCents(freq, tuningFreqs[i]));
+        if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+      }
+      setSelectedString(bestIdx);
+      setClosestIdx(bestIdx);
+      setCents(freqToCents(freq, tuningFreqs[bestIdx]));
+    } else {
+      const targetFreq = noteToFreq(tuning[selectedString]);
+      setClosestIdx(selectedString);
+      setCents(freqToCents(freq, targetFreq));
+    }
+  }, [freq, tuning, selectedString, autoDetect]);
 
   const handleNoteChange = useCallback((idx: number, note: string) => {
     setTuning((prev) => { const next = [...prev]; next[idx] = note; return next; });
@@ -68,6 +81,20 @@ export default function Tuner() {
       </div>
 
       <Meter cents={cents} />
+
+      {/* Auto/Manual toggle */}
+      <div className="flex items-center gap-2">
+        <span className={`text-xs ${!autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Manual</span>
+        <button
+          onClick={() => setAutoDetect(!autoDetect)}
+          className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${autoDetect ? "bg-emerald-400" : "bg-gray-300"}`}
+        >
+          <div
+            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${autoDetect ? "translate-x-5" : "translate-x-0.5"}`}
+          />
+        </button>
+        <span className={`text-xs ${autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Auto</span>
+      </div>
 
       {/* Combo lock with green bar overlay */}
       <div className="relative mt-8">
