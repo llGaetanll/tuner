@@ -14,7 +14,20 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Tuner",
-  description: "Guitar tuner",
+  description: "Guitar tuner with custom tuning presets. Standard, Drop D, DADGAD, Open G, and more.",
+  metadataBase: new URL("https://tuner.almela.io"),
+  openGraph: {
+    title: "Tuner",
+    description: "Guitar tuner with custom tuning presets",
+    url: "https://tuner.almela.io",
+    siteName: "Tuner",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tuner",
+    description: "Guitar tuner with custom tuning presets",
+  },
 };
 
 export default function RootLayout({
