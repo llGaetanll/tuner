@@ -14,6 +14,7 @@ export default function Tuner() {
   const [freq, setFreq] = useState<number>(-1);
   const [closestIdx, setClosestIdx] = useState<number>(-1);
   const [cents, setCents] = useState<number | null>(null);
+  const [selectedString, setSelectedString] = useState<number>(0);
   const audioRef = useRef<{ ctx: AudioContext; processor: ScriptProcessorNode } | null>(null);
 
   useEffect(() => {
@@ -38,15 +39,10 @@ export default function Tuner() {
 
   useEffect(() => {
     if (freq <= 0) { setClosestIdx(-1); setCents(null); return; }
-    const tuningFreqs = tuning.map(noteToFreq);
-    let bestIdx = 0, bestDist = Infinity;
-    for (let i = 0; i < tuningFreqs.length; i++) {
-      const dist = Math.abs(freqToCents(freq, tuningFreqs[i]));
-      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-    }
-    setClosestIdx(bestIdx);
-    setCents(freqToCents(freq, tuningFreqs[bestIdx]));
-  }, [freq, tuning]);
+    const targetFreq = noteToFreq(tuning[selectedString]);
+    setClosestIdx(selectedString);
+    setCents(freqToCents(freq, targetFreq));
+  }, [freq, tuning, selectedString]);
 
   const handleNoteChange = useCallback((idx: number, note: string) => {
     setTuning((prev) => { const next = [...prev]; next[idx] = note; return next; });
@@ -54,8 +50,8 @@ export default function Tuner() {
 
   const inTune = cents !== null && Math.abs(cents) < 5;
   const close = cents !== null && Math.abs(cents) < 15;
-  const displayNote = closestIdx >= 0 ? tuning[closestIdx].replace(/[0-9]/g, "") : "--";
-  const noteColor = freq <= 0 ? "text-gray-200" : inTune ? "text-emerald-500" : close ? "text-gray-800" : "text-red-500";
+  const displayNote = tuning[selectedString].replace(/[0-9]/g, "");
+  const noteColor = freq <= 0 ? "text-gray-300" : inTune ? "text-emerald-500" : close ? "text-gray-800" : "text-red-500";
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 gap-10 px-4 py-12">
@@ -77,7 +73,7 @@ export default function Tuner() {
       <div className="relative mt-8">
         {/* Background for non-bar area */}
         <div
-          className="absolute inset-0 rounded-xl bg-gray-50 border border-gray-200 pointer-events-none"
+          className="absolute inset-0 bg-gray-50 pointer-events-none"
           style={{ zIndex: 0 }}
         />
 
@@ -99,12 +95,28 @@ export default function Tuner() {
         <div className="flex relative" style={{ zIndex: 1 }}>
           {tuning.map((note, i) => (
             <div key={i} className="relative flex">
+              {/* Selected string highlight */}
+              <div
+                className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                style={{
+                  zIndex: 0,
+                  opacity: selectedString === i ? 1 : 0,
+                  backgroundColor: "rgba(167, 243, 208, 0.35)",
+                  clipPath: `polygon(0 0, 100% 0, 100% ${BAR_TOP}px, 0 ${BAR_TOP}px, 0 ${BAR_TOP + SELECTED_H}px, 100% ${BAR_TOP + SELECTED_H}px, 100% 100%, 0 100%)`,
+                }}
+              />
               {i > 0 && (
                 <div
                   className="absolute left-0 w-px bg-white/10"
                   style={{ top: BAR_TOP + 10, height: SELECTED_H - 20 }}
                 />
               )}
+              {/* Clickable zone on the green bar to select string */}
+              <div
+                className="absolute inset-x-0 cursor-pointer"
+                style={{ top: BAR_TOP, height: SELECTED_H, zIndex: 4 }}
+                onClick={() => setSelectedString(i)}
+              />
               <NoteScroller
                 note={note}
                 onChange={(n) => handleNoteChange(i, n)}
@@ -115,11 +127,11 @@ export default function Tuner() {
 
         {/* Fade edges */}
         <div
-          className="absolute left-0 right-0 top-0 h-8 pointer-events-none rounded-t-xl"
+          className="absolute left-0 right-0 top-0 h-8 pointer-events-none"
           style={{ background: "linear-gradient(to bottom, white, transparent)", zIndex: 2 }}
         />
         <div
-          className="absolute left-0 right-0 bottom-0 h-8 pointer-events-none rounded-b-xl"
+          className="absolute left-0 right-0 bottom-0 h-8 pointer-events-none"
           style={{ background: "linear-gradient(to top, white, transparent)", zIndex: 2 }}
         />
       </div>

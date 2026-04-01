@@ -9,7 +9,7 @@ const REVERSED = [...ALL_NOTES].reverse();
 
 export const ROW_H = 40;
 export const SELECTED_H = 42;
-export const BAR_TOP = 60;
+export const BAR_TOP = 55;
 export const CONTAINER_H = BAR_TOP + SELECTED_H + BAR_TOP;
 
 const CENTER_Y = BAR_TOP + SELECTED_H / 2;
@@ -36,23 +36,23 @@ function CylinderRow({
 
   const rotateX = useTransform(stripY, (y) => {
     const dist = (rowCenter + y - CENTER_Y) / ROW_H;
-    return Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, dist * 20));
+    return Math.max(-MAX_ANGLE, Math.min(MAX_ANGLE, dist * 30));
   });
 
   const opacity = useTransform(stripY, (y) => {
     const dist = Math.abs(rowCenter + y - CENTER_Y) / ROW_H;
-    return Math.max(0, 1 - dist * 0.2);
+    return Math.max(0, 1 - dist * 0.35);
   });
 
   const scale = useTransform(stripY, (y) => {
     const dist = Math.abs(rowCenter + y - CENTER_Y) / ROW_H;
-    return Math.max(0.7, 1 - dist * 0.06);
+    return Math.max(0.5, 1 - dist * 0.12);
   });
 
   // Pull rows toward center to simulate cylindrical foreshortening
   const translateY = useTransform(stripY, (y) => {
     const dist = (rowCenter + y - CENTER_Y) / ROW_H;
-    return -dist * Math.abs(dist) * 3;
+    return -dist * Math.abs(dist) * 5;
   });
 
   return (
