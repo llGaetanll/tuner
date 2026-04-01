@@ -102,60 +102,6 @@ export default function NoteScroller({
   const reversedIdx = REVERSED.indexOf(note);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      e.preventDefault();
-      const dir = e.deltaY > 0 ? -1 : 1;
-      const newIdx = Math.max(0, Math.min(ALL_NOTES.length - 1, idx + dir));
-      if (newIdx !== idx) onChange(ALL_NOTES[newIdx]);
-    },
-    [idx, onChange],
-  );
-
-  // Track touch dragging
-  const touchStartY = useRef<number>(0);
-  const touchAccum = useRef<number>(0);
-
-  const handleTouchStart = useCallback((e: TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchAccum.current = 0;
-  }, []);
-
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      e.preventDefault();
-      const dy = touchStartY.current - e.touches[0].clientY;
-      touchStartY.current = e.touches[0].clientY;
-      touchAccum.current += dy;
-
-      const threshold = ROW_H * 0.6;
-      while (touchAccum.current > threshold) {
-        touchAccum.current -= threshold;
-        const newIdx = Math.min(ALL_NOTES.length - 1, idx + 1);
-        if (newIdx !== idx) onChange(ALL_NOTES[newIdx]);
-      }
-      while (touchAccum.current < -threshold) {
-        touchAccum.current += threshold;
-        const newIdx = Math.max(0, idx - 1);
-        if (newIdx !== idx) onChange(ALL_NOTES[newIdx]);
-      }
-    },
-    [idx, onChange],
-  );
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.addEventListener("wheel", handleWheel, { passive: false });
-    el.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el.addEventListener("touchmove", handleTouchMove, { passive: false });
-    return () => {
-      el.removeEventListener("wheel", handleWheel);
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove", handleTouchMove);
-    };
-  }, [handleWheel, handleTouchStart, handleTouchMove]);
-
   const stripOffset = BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H;
 
   const targetY = useMotionValue(stripOffset);
@@ -166,6 +112,64 @@ export default function NoteScroller({
     targetY.set(stripOffset);
   }, [stripOffset, targetY]);
 
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      e.preventDefault();
+      const dir = e.deltaY > 0 ? -1 : 1;
+      const newIdx = Math.max(0, Math.min(ALL_NOTES.length - 1, idx + dir));
+      if (newIdx !== idx) onChange(ALL_NOTES[newIdx]);
+    },
+    [idx, onChange],
+  );
+
+  // Touch dragging — finger drives the strip directly, snaps on release
+  const touchStartY = useRef<number>(0);
+  const dragOffset = useRef<number>(0);
+  const isDragging = useRef<boolean>(false);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    dragOffset.current = 0;
+    isDragging.current = true;
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      e.preventDefault();
+      const dy = e.touches[0].clientY - touchStartY.current;
+      dragOffset.current = dy;
+      targetY.set(stripOffset + dy);
+    },
+    [stripOffset, targetY],
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const noteShift = Math.round(dragOffset.current / ROW_H);
+    const newReversedIdx = Math.max(0, Math.min(REVERSED.length - 1, reversedIdx - noteShift));
+    dragOffset.current = 0;
+    if (newReversedIdx !== reversedIdx) {
+      onChange(REVERSED[newReversedIdx]);
+    } else {
+      targetY.set(stripOffset);
+    }
+  }, [reversedIdx, stripOffset, targetY, onChange]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd);
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   const BUFFER = 6;
   const sliceStart = Math.max(0, reversedIdx - BUFFER);
