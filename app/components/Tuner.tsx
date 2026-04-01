@@ -7,7 +7,7 @@ import NoteScroller, { BAR_TOP, SELECTED_H } from "./NoteScroller";
 import Meter from "./Meter";
 import TuningPresets from "./TuningPresets";
 
-const DEFAULT_TUNING = ["D2", "A2", "D3", "F#3", "B3", "D4"];
+const DEFAULT_TUNING = ["E2", "A2", "D3", "G3", "B3", "E4"];
 
 const ALL_NOTES = getAllNotes();
 
@@ -75,25 +75,44 @@ export default function Tuner() {
   const displayNote = tuning[selectedString].replace(/[0-9]/g, "");
   const noteColor = freq <= 0 ? "text-gray-300" : inTune ? "text-emerald-500" : close ? "text-gray-800" : "text-red-500";
 
+  const displayOctave = tuning[selectedString].replace(/[^0-9]/g, "");
+  const displaySharp = displayNote.includes("#");
+  const displayBase = displayNote.replace("#", "");
+
   return (
-    <div className="flex flex-col items-center justify-center flex-1 gap-10 px-4 py-12">
-      <div className="flex flex-col items-center">
-        <div className={`text-8xl font-bold tracking-tighter transition-colors duration-150 ${noteColor}`}>
-          {displayNote}
+    <div className="flex flex-col items-center justify-center flex-1 gap-8 px-4 py-12">
+      {/* Note display + meter */}
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative">
+          <span className={`text-[120px] leading-none font-bold tracking-tighter transition-colors duration-150 ${noteColor}`}>
+            {displayBase}
+          </span>
+          <span className="absolute left-full top-2 flex flex-col gap-0.5 opacity-80">
+            <span className={`text-2xl font-bold transition-colors duration-150 ${noteColor}`}>
+              {displaySharp ? "#" : "\u00a0"}
+            </span>
+            <span className={`text-lg font-medium transition-colors duration-150 ${noteColor}`}>
+              {displayOctave}
+            </span>
+          </span>
         </div>
-        <div className={`text-2xl font-mono mt-1 transition-colors ${inTune ? "text-emerald-500" : "text-gray-400"}`}>
-          {cents !== null ? (cents >= 0 ? `+${cents.toFixed(0)}c` : `${cents.toFixed(0)}c`) : "\u00a0"}
-        </div>
-        <div className="text-sm text-gray-400 font-mono mt-1">
-          {freq > 0 ? `${freq.toFixed(1)} Hz` : "\u00a0"}
+
+        <Meter cents={cents} />
+
+        <div className="flex items-baseline gap-3">
+          <div className={`text-xl font-mono tabular-nums transition-colors ${inTune ? "text-emerald-500 font-semibold" : "text-gray-400"}`}>
+            {cents !== null ? (cents >= 0 ? `+${cents.toFixed(0)}` : `${cents.toFixed(0)}`) : "\u00a0"}
+            {cents !== null && <span className="text-sm ml-0.5">¢</span>}
+          </div>
+          <div className="text-sm text-gray-300 font-mono tabular-nums">
+            {freq > 0 ? `${freq.toFixed(1)} Hz` : "\u00a0"}
+          </div>
         </div>
       </div>
 
-      <Meter cents={cents} />
-
       {/* Auto/Manual toggle */}
       <div className="flex items-center gap-2">
-        <span className={`text-xs ${!autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Manual</span>
+        <span className={`text-xs w-10 text-right ${!autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Manual</span>
         <button
           onClick={() => setAutoDetect(!autoDetect)}
           className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${autoDetect ? "bg-emerald-400" : "bg-gray-300"}`}
@@ -103,7 +122,7 @@ export default function Tuner() {
             style={{ transform: autoDetect ? "translateX(20px)" : "translateX(0)" }}
           />
         </button>
-        <span className={`text-xs ${autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Auto</span>
+        <span className={`text-xs w-10 text-left ${autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Auto</span>
       </div>
 
       {/* Combo lock with green bar overlay */}
