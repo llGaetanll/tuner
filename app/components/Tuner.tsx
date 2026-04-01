@@ -73,7 +73,7 @@ export default function Tuner() {
   const inTune = cents !== null && Math.abs(cents) < 5;
   const close = cents !== null && Math.abs(cents) < 15;
   const displayNote = tuning[selectedString].replace(/[0-9]/g, "");
-  const noteColor = freq <= 0 ? "text-gray-300" : inTune ? "text-emerald-500" : close ? "text-gray-800" : "text-red-500";
+  const noteColor = freq <= 0 ? "text-gray-300" : inTune ? "text-emerald-400" : close ? "text-gray-800" : "text-red-400";
 
   const displayOctave = tuning[selectedString].replace(/[^0-9]/g, "");
   const displaySharp = displayNote.includes("#");
