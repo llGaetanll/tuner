@@ -92,23 +92,15 @@ function CylinderRow({
 export default function NoteScroller({
   note,
   onChange,
+  onSelect,
 }: {
   note: string;
   onChange: (note: string) => void;
+  onSelect?: () => void;
 }) {
   const idx = ALL_NOTES.indexOf(note);
   const reversedIdx = REVERSED.indexOf(note);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const stripOffset = BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H;
-
-  const targetY = useMotionValue(stripOffset);
-  const stripY = useSpring(targetY, { stiffness: 400, damping: 35 });
-  const highlightY = useTransform(stripY, (v) => v - BAR_TOP);
-
-  useEffect(() => {
-    targetY.set(stripOffset);
-  }, [stripOffset, targetY]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -126,6 +118,17 @@ export default function NoteScroller({
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
+
+  const stripOffset = BAR_TOP + (SELECTED_H - ROW_H) / 2 - reversedIdx * ROW_H;
+
+  const targetY = useMotionValue(stripOffset);
+  const stripY = useSpring(targetY, { stiffness: 400, damping: 35 });
+  const highlightY = useTransform(stripY, (v) => v - BAR_TOP);
+
+  useEffect(() => {
+    targetY.set(stripOffset);
+  }, [stripOffset, targetY]);
+
 
   const BUFFER = 6;
   const sliceStart = Math.max(0, reversedIdx - BUFFER);
@@ -189,6 +192,15 @@ export default function NoteScroller({
           {renderStrip("highlight")}
         </motion.div>
       </div>
+
+      {/* Bar click zone for string selection */}
+      {onSelect && (
+        <div
+          className="absolute inset-x-0 cursor-pointer"
+          style={{ top: BAR_TOP, height: SELECTED_H, zIndex: 4 }}
+          onClick={onSelect}
+        />
+      )}
     </div>
   );
 }

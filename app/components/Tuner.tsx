@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { detectPitch } from "../lib/pitch";
-import { noteToFreq, freqToCents } from "../lib/notes";
+import { noteToFreq, freqToCents, getAllNotes } from "../lib/notes";
 import NoteScroller, { BAR_TOP, SELECTED_H } from "./NoteScroller";
 import Meter from "./Meter";
 import TuningPresets from "./TuningPresets";
 
 const DEFAULT_TUNING = ["D2", "A2", "D3", "F#3", "B3", "D4"];
+
+const ALL_NOTES = getAllNotes();
 
 export default function Tuner() {
   const [tuning, setTuning] = useState<string[]>(DEFAULT_TUNING);
@@ -61,6 +63,13 @@ export default function Tuner() {
     setTuning((prev) => { const next = [...prev]; next[idx] = note; return next; });
   }, []);
 
+  const handleColumnWheel = useCallback((i: number, e: React.WheelEvent) => {
+    const curIdx = ALL_NOTES.indexOf(tuning[i]);
+    const dir = e.deltaY > 0 ? -1 : 1;
+    const newIdx = Math.max(0, Math.min(ALL_NOTES.length - 1, curIdx + dir));
+    if (newIdx !== curIdx) handleNoteChange(i, ALL_NOTES[newIdx]);
+  }, [tuning, handleNoteChange]);
+
   const inTune = cents !== null && Math.abs(cents) < 5;
   const close = cents !== null && Math.abs(cents) < 15;
   const displayNote = tuning[selectedString].replace(/[0-9]/g, "");
@@ -90,7 +99,8 @@ export default function Tuner() {
           className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${autoDetect ? "bg-emerald-400" : "bg-gray-300"}`}
         >
           <div
-            className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${autoDetect ? "translate-x-5" : "translate-x-0.5"}`}
+            className="absolute top-[2px] left-[2px] w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
+            style={{ transform: autoDetect ? "translateX(20px)" : "translateX(0)" }}
           />
         </button>
         <span className={`text-xs ${autoDetect ? "text-gray-700 font-medium" : "text-gray-400"}`}>Auto</span>
@@ -138,15 +148,10 @@ export default function Tuner() {
                   style={{ top: BAR_TOP + 10, height: SELECTED_H - 20 }}
                 />
               )}
-              {/* Clickable zone on the green bar to select string */}
-              <div
-                className="absolute inset-x-0 cursor-pointer"
-                style={{ top: BAR_TOP, height: SELECTED_H, zIndex: 4 }}
-                onClick={() => setSelectedString(i)}
-              />
               <NoteScroller
                 note={note}
                 onChange={(n) => handleNoteChange(i, n)}
+                onSelect={() => setSelectedString(i)}
               />
             </div>
           ))}
