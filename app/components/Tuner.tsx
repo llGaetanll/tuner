@@ -87,11 +87,11 @@ export default function Tuner() {
           <span className={`text-[120px] leading-none font-bold tracking-tighter transition-colors duration-150 ${noteColor}`}>
             {displayBase}
           </span>
-          <span className="absolute left-full top-2 flex flex-col gap-0.5 opacity-80">
-            <span className={`text-2xl font-bold transition-colors duration-150 ${noteColor}`}>
+          <span className="absolute left-full top-[6px] bottom-[6px] flex flex-col justify-between leading-none opacity-80">
+            <span className={`text-[36px] font-bold transition-colors duration-150 ${noteColor}`}>
               {displaySharp ? "#" : "\u00a0"}
             </span>
-            <span className={`text-lg font-medium transition-colors duration-150 ${noteColor}`}>
+            <span className={`text-[32px] font-medium transition-colors duration-150 ${noteColor}`}>
               {displayOctave}
             </span>
           </span>
