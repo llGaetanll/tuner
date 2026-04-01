@@ -2,19 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { detectPitch } from "../lib/pitch";
-import { noteToFreq, freqToCents, getAllNotes } from "../lib/notes";
+import { noteToFreq, freqToCents } from "../lib/notes";
 import NoteScroller, { BAR_TOP, SELECTED_H } from "./NoteScroller";
 import Meter from "./Meter";
 import TuningPresets from "./TuningPresets";
 
 const DEFAULT_TUNING = ["E2", "A2", "D3", "G3", "B3", "E4"];
 
-const ALL_NOTES = getAllNotes();
-
 export default function Tuner() {
   const [tuning, setTuning] = useState<string[]>(DEFAULT_TUNING);
   const [freq, setFreq] = useState<number>(-1);
-  const [closestIdx, setClosestIdx] = useState<number>(-1);
   const [cents, setCents] = useState<number | null>(null);
   const [selectedString, setSelectedString] = useState<number>(0);
   const [autoDetect, setAutoDetect] = useState<boolean>(false);
@@ -41,7 +38,7 @@ export default function Tuner() {
   }, []);
 
   useEffect(() => {
-    if (freq <= 0) { setClosestIdx(-1); setCents(null); return; }
+    if (freq <= 0) { setCents(null); return; }
     if (autoDetect) {
       const tuningFreqs = tuning.map(noteToFreq);
       let bestIdx = 0, bestDist = Infinity;
@@ -50,25 +47,15 @@ export default function Tuner() {
         if (dist < bestDist) { bestDist = dist; bestIdx = i; }
       }
       setSelectedString(bestIdx);
-      setClosestIdx(bestIdx);
       setCents(freqToCents(freq, tuningFreqs[bestIdx]));
     } else {
-      const targetFreq = noteToFreq(tuning[selectedString]);
-      setClosestIdx(selectedString);
-      setCents(freqToCents(freq, targetFreq));
+      setCents(freqToCents(freq, noteToFreq(tuning[selectedString])));
     }
   }, [freq, tuning, selectedString, autoDetect]);
 
   const handleNoteChange = useCallback((idx: number, note: string) => {
     setTuning((prev) => { const next = [...prev]; next[idx] = note; return next; });
   }, []);
-
-  const handleColumnWheel = useCallback((i: number, e: React.WheelEvent) => {
-    const curIdx = ALL_NOTES.indexOf(tuning[i]);
-    const dir = e.deltaY > 0 ? -1 : 1;
-    const newIdx = Math.max(0, Math.min(ALL_NOTES.length - 1, curIdx + dir));
-    if (newIdx !== curIdx) handleNoteChange(i, ALL_NOTES[newIdx]);
-  }, [tuning, handleNoteChange]);
 
   const inTune = cents !== null && Math.abs(cents) < 5;
   const close = cents !== null && Math.abs(cents) < 15;

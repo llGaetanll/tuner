@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { motion, useSpring, useMotionValue, useTransform, MotionValue } from "framer-motion";
 import { getAllNotes } from "../lib/notes";
 
